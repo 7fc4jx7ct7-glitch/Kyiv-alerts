@@ -480,11 +480,6 @@
             };
         }
 
-        function playAlertSound() {
-            const audio = document.getElementById('alertSound');
-            audio.play().catch(err => console.log('Audio play failed:', err));
-        }
-
         async function checkAlertStatus() {
             // Try each endpoint until one works
             for (let i = 0; i < API_ENDPOINTS.length; i++) {
@@ -695,10 +690,6 @@
                 clearInterval(checkInterval);
             }
         });
-    </script>
-</body>
-</html>
-
     </script>
 </body>
 </html>
