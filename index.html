@@ -380,11 +380,11 @@
     </audio>
 
     <script>
-        // Try multiple API endpoints with CORS proxy fallback
+        // Try multiple API endpoints - using different CORS proxies
         const API_ENDPOINTS = [
-            'https://corsproxy.io/?https://alerts.in.ua/api/states/31',
-            'https://api.allorigins.win/raw?url=https://alerts.in.ua/api/states/31',
-            'https://corsproxy.io/?https://siren.pp.ua/api/v3/alerts/31'
+            'https://api.codetabs.com/v1/proxy?quest=https://alerts.in.ua/api/states/31',
+            'https://thingproxy.freeboard.io/fetch/https://alerts.in.ua/api/states/31',
+            'https://api.allorigins.win/get?url=https://alerts.in.ua/api/states/31'
         ];
         let currentEndpointIndex = 0;
         const KYIV_REGION_ID = '31';
@@ -503,7 +503,16 @@
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
-                    const data = await response.json();
+                    let data = await response.json();
+                    
+                    // Handle allorigins wrapper format
+                    if (data && data.contents) {
+                        try {
+                            data = JSON.parse(data.contents);
+                        } catch (e) {
+                            data = data.contents;
+                        }
+                    }
                     
                     // Successfully connected - use this endpoint going forward
                     currentEndpointIndex = endpointIndex;
@@ -686,6 +695,10 @@
                 clearInterval(checkInterval);
             }
         });
+    </script>
+</body>
+</html>
+
     </script>
 </body>
 </html>
