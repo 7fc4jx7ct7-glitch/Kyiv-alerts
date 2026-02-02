@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kyiv Air Raid Alert</title>
+    <style>
+        :root {
+            --color-bg-primary: #0f172a;
+            --color-bg-secondary: #1e293b;
+            --color-text-primary: #f1f5f9;
+            --color-text-secondary: #cbd5e1;
+            --color-success: #22c55e;
+            --color-danger: #ef4444;
+            --color-warning: #f59e0b;
+            --color-border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            border: 2px solid var(--color-border);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .status-card {
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 2px solid var(--color-border);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .status-card.alert-active {
+            border-color: var(--color-danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .status-card.alert-clear {
+            border-color: var(--color-success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .status-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .status-text {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .status-time {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+        }
+
+        .notification-section {
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid var(--color-border);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #16a34a;
+        }
+
+        .btn-primary:disabled {
+            background: #334155;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            border: 2px solid var(--color-border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-border);
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #60a5fa;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.active {
+            background: var(--color-danger);
+        }
+
+        .status-indicator.clear {
+            background: var(--color-success);
+        }
+
+        .status-indicator.checking {
+            background: var(--color-warning);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .last-check {
+            text-align: center;
+            color: var(--color-text-secondary);
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .alert-history {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .history-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: var(--color-bg-primary);
+            border-radius: 6px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item .time {
+            color: var(--color-text-secondary);
+        }
+
+        .setup-instructions {
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid var(--color-border);
+            margin-bottom: 20px;
+        }
+
+        .setup-instructions ol {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .setup-instructions li {
+            margin-bottom: 10px;
+            color: var(--color-text-secondary);
+        }
+
+        .recommended-apps {
+            background: var(--color-bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid var(--color-border);
+        }
+
+        .app-item {
+            background: var(--color-bg-primary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--color-border);
+        }
+
+        .app-item h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: var(--color-text-primary);
+        }
+
+        .app-item p {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .app-item a {
+            display: inline-block;
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .app-item a:hover {
+            color: #3b82f6;
+        }
+
+        .features-list {
+            list-style: none;
+            margin-left: 0;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+        }
+
+        .features-list li {
+            padding-left: 20px;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .features-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--color-success);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇺🇦 Kyiv Air Raid Alert Monitor</h1>
+            <p class="subtitle">Real-time alerts for Kyiv city</p>
+        </header>
+
+        <div class="status-card" id="statusCard">
+            <div class="status-icon" id="statusIcon">🔍</div>
+            <div class="status-text" id="statusText">Initializing...</div>
+            <div class="status-time" id="statusTime"></div>
+        </div>
+
+        <div class="notification-section">
+            <h2 class="section-title">Browser Notifications</h2>
+            <div class="info-box">
+                <strong>⚠️ Important:</strong>
+                Enable notifications to receive alerts when air raid sirens are activated or deactivated in Kyiv, even when this tab is in the background.
+            </div>
+            <button class="btn-primary" id="enableNotifications">Enable Notifications</button>
+            <button class="btn-secondary" id="testNotification" style="display: none;">Test Notification</button>
+            <div class="last-check">
+                <span class="status-indicator checking" id="connectionIndicator"></span>
+                <span id="lastCheck">Checking connection...</span>
+            </div>
+            <div class="alert-history" id="alertHistory" style="display: none;">
+                <strong style="font-size: 14px; margin-bottom: 10px; display: block;">Recent Alerts</strong>
+            </div>
+        </div>
+
+        <div class="setup-instructions">
+            <h2 class="section-title">📱 Setup for iPhone</h2>
+            <ol>
+                <li><strong>Add to Home Screen:</strong> Tap the Share button in Safari, scroll down and select "Add to Home Screen"</li>
+                <li><strong>Enable Notifications:</strong> Click the "Enable Notifications" button above and allow when prompted</li>
+                <li><strong>Keep Safari Running:</strong> This app needs Safari running in the background (you can switch to other apps)</li>
+                <li><strong>Don't Force-Quit Safari:</strong> Avoid swiping up to close Safari completely</li>
+                <li><strong>Check Battery:</strong> Ensure Low Power Mode doesn't restrict background activity</li>
+            </ol>
+        </div>
+
+        <div class="recommended-apps">
+            <h2 class="section-title">🔔 Recommended: Professional Alert Apps</h2>
+            <div class="info-box">
+                <strong>For Complete Safety Coverage:</strong>
+                This web app monitors air raid alerts only. For missile impact reports, casualty alerts, and damage notifications, use these official apps with native iOS push notifications:
+            </div>
+
+            <div class="app-item">
+                <h3>1. eAlert: Ukraine Air Raid Alert</h3>
+                <ul class="features-list">
+                    <li>Push notifications with locked phone</li>
+                    <li>Explosion notifications with verification</li>
+                    <li>Manually verified by 30+ volunteers</li>
+                    <li>Region-specific alerts including Kyiv</li>
+                    <li>Works completely in background</li>
+                </ul>
+                <a href="https://apps.apple.com/app/id1611921749" target="_blank">Download on App Store →</a>
+            </div>
+
+            <div class="app-item">
+                <h3>2. Air Raid Alert Map of Ukraine (Official)</h3>
+                <ul class="features-list">
+                    <li>Official alerts.in.ua iOS app</li>
+                    <li>Native push notifications</li>
+                    <li>Interactive map with all regions</li>
+                    <li>Reliable background operation</li>
+                </ul>
+                <a href="https://apps.apple.com/app/id6478420211" target="_blank">Download on App Store →</a>
+            </div>
+
+            <div class="app-item">
+                <h3>3. Telegram Channels (Recommended)</h3>
+                <p>Set up Telegram with these verified channels for impact/casualty reports:</p>
+                <ul class="features-list">
+                    <li>"Air Alarm Ukraine" - Official government alerts</li>
+                    <li>Kyiv City State Administration channel</li>
+                    <li>Emergency services regional channels</li>
+                    <li>Enable push notifications in Telegram settings</li>
+                </ul>
+                <a href="https://telegram.org/" target="_blank">Get Telegram →</a>
+            </div>
+        </div>
+    </div>
+
+    <audio id="alertSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTcIF2i78OScTgwPUKXh8LdjHQU2jdXx0IAyBSR1xe/dkEILFFu16OSqWBUIQ5zd8sFuJAYrhM/y2Ik3CBdou+3mnE4MD06j4O+5Yx4FNo3V8c+BMwUkdMXv3Y9DCxNYtOjjrFoWCEKb3fLAbSQHKoTP8tiJOAgXZ7vs5ppPDA9No9/wuWQeBTWM1PHPgTMGI3LF8N2RQwsTWLTo46xbFwhBmtzywGwlByqEzvLYiDkJF2e67OWaTg0PTKLf8LpkHwU1i9Twz4E0ByNyxfDdkEMMEliz6OOtWxgIQJrc8sBsJQcqg87y2Ig5CRdmuuzlmk4ND0yi3+27ZR8FNIvU8M9/NQgjccXw3I9EDBJXs+jkrlsZB0CZ2/K/bCYHKoLO8tiHOQkYZrrs5ZlPDg9Mod/tu2YfBTSK0/DOgDUIJHDE8NyPRAwSVrPo5K9bGQc/mdvyv2snCCqCzvLYhzoJGGa67OWZTw4PT6De7b5mHwUziNPwzoA1CCRwxPDcjkUMElaz6OSwWxkHP5jb8r9rJwgqgc7y2Ic6CRhluuvlmE8OD0+f3u27Zh8FM4fU8M6ANQgkb8Tw3I5FDBJVs+jksVsaBz6X2/G/aygIKoDO8th/OwkaZbjr5ZhQDxBPnt7tuWYfBTKH0/DMgTYJJG7E8NyORQwSVbPo5LFaGgc+l9vxv2soByp/zvLYfzsKGmS46+WYTw8PT57e7rpnHwUyh9Pxy4A2CiVuxPDajEUNElSy6OSxWhsHPZbb8b9rKAcpfs7y2H87ChpkuOvlmE8PD06d3u66Zx8FMobT8cuANgolbsPx2o1GDRJUMujksVobBz2W2vG+ayoIKX3O8tiAOwocY7fr5ZhPDw9Ond7uumgfBjCG0/HLgDYKJW3D8duNRg0RUzLo5LBaGwc9ldvxvmwpCCl9zvLYgDwKHGO36+WYUA8PTZzd7rpnHwYwhNPxy4A2CiVtw/HajUYOEVIy6OSwWhsHPJTb8b5sKQkpfM7y2IA8ChxjturllFAPD0yc3e66Zx8GM4TT8cuANQsmbcPx2o1FDhBSMejksFobCDuU2/G+bCkJKXzO8teAPAsbY7fq5pRQDxBMm93uumceByuD0/LLgDULJm3D8dqNRQ4QUTLn5K9bHAg7k9vxvmwqCSh7zvLYgD0LG2K36+aUUA8QTJrc7rlnHwUzg9Pyy38zCydsw/DbjUUOEVEx6OSvXBwIO5Pb8b5tKgkoe87y1386Cxxjt+rmlE8PEFOR" type="audio/wav">
+    </audio>
+
+    <script>
+        const API_URL = 'https://api.alerts.in.ua/v1/alerts/active.json';
+        const KYIV_REGION_ID = '31';
+        const CHECK_INTERVAL = 30000; // 30 seconds
+        
+        let notificationPermission = 'default';
+        let isAlertActive = null;
+        let lastAlertState = null;
+        let alertHistory = [];
+        let checkInterval = null;
+
+        const elements = {
+            statusCard: document.getElementById('statusCard'),
+            statusIcon: document.getElementById('statusIcon'),
+            statusText: document.getElementById('statusText'),
+            statusTime: document.getElementById('statusTime'),
+            enableNotifications: document.getElementById('enableNotifications'),
+            testNotification: document.getElementById('testNotification'),
+            lastCheck: document.getElementById('lastCheck'),
+            connectionIndicator: document.getElementById('connectionIndicator'),
+            alertHistory: document.getElementById('alertHistory')
+        };
+
+        // Check if notifications are supported
+        if (!('Notification' in window)) {
+            elements.enableNotifications.textContent = 'Notifications not supported in this browser';
+            elements.enableNotifications.disabled = true;
+        } else {
+            notificationPermission = Notification.permission;
+            updateNotificationButton();
+        }
+
+        // Enable notifications
+        elements.enableNotifications.addEventListener('click', async () => {
+            if (notificationPermission === 'granted') {
+                return;
+            }
+
+            try {
+                const permission = await Notification.requestPermission();
+                notificationPermission = permission;
+                updateNotificationButton();
+
+                if (permission === 'granted') {
+                    showNotification('✅ Notifications Enabled', 'You will now receive alerts for Kyiv air raids', false);
+                    elements.testNotification.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error requesting notification permission:', error);
+                alert('Error enabling notifications. Please check your browser settings.');
+            }
+        });
+
+        // Test notification
+        elements.testNotification.addEventListener('click', () => {
+            showNotification('🧪 Test Alert', 'This is a test notification from Kyiv Air Raid Alert Monitor', false);
+            playAlertSound();
+        });
+
+        function updateNotificationButton() {
+            if (notificationPermission === 'granted') {
+                elements.enableNotifications.textContent = '✓ Notifications Enabled';
+                elements.enableNotifications.disabled = true;
+                elements.enableNotifications.style.background = '#16a34a';
+            } else if (notificationPermission === 'denied') {
+                elements.enableNotifications.textContent = '✗ Notifications Blocked';
+                elements.enableNotifications.disabled = true;
+                elements.enableNotifications.style.background = '#ef4444';
+            }
+        }
+
+        function showNotification(title, body, playSound = true) {
+            if (notificationPermission !== 'granted') {
+                return;
+            }
+
+            const notification = new Notification(title, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23ef4444"/><text x="50" y="65" font-size="50" text-anchor="middle" fill="white">🚨</text></svg>',
+                badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23ef4444"/></svg>',
+                tag: 'kyiv-alert',
+                requireInteraction: true,
+                vibrate: [200, 100, 200]
+            });
+
+            if (playSound) {
+                playAlertSound();
+            }
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+        }
+
+        function playAlertSound() {
+            const audio = document.getElementById('alertSound');
+            audio.play().catch(err => console.log('Audio play failed:', err));
+        }
+
+        async function checkAlertStatus() {
+            try {
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Check if Kyiv region (ID 31) has active alert
+                const kyivAlert = data.alerts?.states?.[KYIV_REGION_ID];
+                const currentAlertActive = kyivAlert?.alert === true;
+                
+                // Update UI
+                updateStatus(currentAlertActive, kyivAlert);
+                
+                // Check for state change and send notification
+                if (lastAlertState !== null && lastAlertState !== currentAlertActive) {
+                    if (currentAlertActive) {
+                        showNotification(
+                            '🚨 AIR RAID ALERT - KYIV',
+                            'Air raid sirens activated in Kyiv. Seek shelter immediately!',
+                            true
+                        );
+                        addToHistory('Air raid alert ACTIVATED');
+                    } else {
+                        showNotification(
+                            '✅ ALL CLEAR - KYIV',
+                            'Air raid alert has been deactivated in Kyiv.',
+                            false
+                        );
+                        addToHistory('Air raid alert DEACTIVATED');
+                    }
+                }
+                
+                lastAlertState = currentAlertActive;
+                elements.lastCheck.textContent = `Last checked: ${new Date().toLocaleTimeString()}`;
+                elements.connectionIndicator.className = 'status-indicator clear';
+
+            } catch (error) {
+                console.error('Error checking alert status:', error);
+                elements.lastCheck.textContent = `Error: ${error.message}`;
+                elements.connectionIndicator.className = 'status-indicator active';
+            }
+        }
+
+        function updateStatus(isActive, alertData) {
+            isAlertActive = isActive;
+            
+            if (isActive) {
+                elements.statusCard.className = 'status-card alert-active';
+                elements.statusIcon.textContent = '🚨';
+                elements.statusText.textContent = 'AIR RAID ALERT ACTIVE';
+                elements.statusText.style.color = 'var(--color-danger)';
+                
+                if (alertData?.changed) {
+                    const alertTime = new Date(alertData.changed);
+                    elements.statusTime.textContent = `Alert started: ${alertTime.toLocaleTimeString()}`;
+                }
+            } else {
+                elements.statusCard.className = 'status-card alert-clear';
+                elements.statusIcon.textContent = '✅';
+                elements.statusText.textContent = 'ALL CLEAR';
+                elements.statusText.style.color = 'var(--color-success)';
+                elements.statusTime.textContent = 'No active alerts in Kyiv';
+            }
+        }
+
+        function addToHistory(message) {
+            const timestamp = new Date().toLocaleString();
+            alertHistory.unshift({ message, timestamp });
+            
+            // Keep only last 10 items
+            if (alertHistory.length > 10) {
+                alertHistory = alertHistory.slice(0, 10);
+            }
+            
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            if (alertHistory.length === 0) {
+                elements.alertHistory.style.display = 'none';
+                return;
+            }
+            
+            elements.alertHistory.style.display = 'block';
+            
+            const historyHTML = alertHistory.map(item => `
+                <div class="history-item">
+                    <span>${item.message}</span>
+                    <span class="time">${item.timestamp}</span>
+                </div>
+            `).join('');
+            
+            const existingTitle = elements.alertHistory.querySelector('strong');
+            elements.alertHistory.innerHTML = '';
+            if (existingTitle) {
+                elements.alertHistory.appendChild(existingTitle);
+            }
+            elements.alertHistory.innerHTML += historyHTML;
+        }
+
+        // Initialize
+        async function initialize() {
+            await checkAlertStatus();
+            
+            // Set up interval for periodic checks
+            checkInterval = setInterval(checkAlertStatus, CHECK_INTERVAL);
+        }
+
+        // Start monitoring
+        initialize();
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('Page hidden - continuing background checks');
+            } else {
+                console.log('Page visible - refreshing status');
+                checkAlertStatus();
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        });
+    </script>
+</body>
+</html>
+
