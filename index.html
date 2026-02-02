@@ -583,8 +583,23 @@
             elements.alertHistory.innerHTML += historyHTML;
         }
 
+        // Update PWA status display
+        function updatePWAStatus() {
+            const pwaStatusElement = document.getElementById('pwaStatus');
+            if (pwaStatusElement) {
+                if (isStandalone) {
+                    pwaStatusElement.innerHTML = '✅ Running as Home Screen app - notifications available!';
+                    pwaStatusElement.parentElement.style.background = 'rgba(34, 197, 94, 0.1)';
+                    pwaStatusElement.parentElement.style.borderColor = 'rgba(34, 197, 94, 0.3)';
+                } else {
+                    pwaStatusElement.innerHTML = '⚠️ Running in Safari browser - add to Home Screen first to enable notifications';
+                }
+            }
+        }
+
         // Initialize
         async function initialize() {
+            updatePWAStatus();
             await checkAlertStatus();
             
             // Set up interval for periodic checks
@@ -610,7 +625,6 @@
                 clearInterval(checkInterval);
             }
         });
-    </script> 
+    </script>
 </body>
 </html>
-
