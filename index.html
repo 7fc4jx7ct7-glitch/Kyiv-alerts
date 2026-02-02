@@ -380,7 +380,13 @@
     </audio>
 
     <script>
-        const API_URL = 'https://api.alerts.in.ua/v1/alerts/active.json';
+        // Try multiple API endpoints with CORS proxy fallback
+        const API_ENDPOINTS = [
+            'https://corsproxy.io/?https://alerts.in.ua/api/states/31',
+            'https://api.allorigins.win/raw?url=https://alerts.in.ua/api/states/31',
+            'https://corsproxy.io/?https://siren.pp.ua/api/v3/alerts/31'
+        ];
+        let currentEndpointIndex = 0;
         const KYIV_REGION_ID = '31';
         const CHECK_INTERVAL = 30000; // 30 seconds
         
@@ -480,49 +486,104 @@
         }
 
         async function checkAlertStatus() {
-            try {
-                const response = await fetch(API_URL);
+            // Try each endpoint until one works
+            for (let i = 0; i < API_ENDPOINTS.length; i++) {
+                const endpointIndex = (currentEndpointIndex + i) % API_ENDPOINTS.length;
+                const apiUrl = API_ENDPOINTS[endpointIndex];
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                // Check if Kyiv region (ID 31) has active alert
-                const kyivAlert = data.alerts?.states?.[KYIV_REGION_ID];
-                const currentAlertActive = kyivAlert?.alert === true;
-                
-                // Update UI
-                updateStatus(currentAlertActive, kyivAlert);
-                
-                // Check for state change and send notification
-                if (lastAlertState !== null && lastAlertState !== currentAlertActive) {
-                    if (currentAlertActive) {
-                        showNotification(
-                            '🚨 AIR RAID ALERT - KYIV',
-                            'Air raid sirens activated in Kyiv. Seek shelter immediately!',
-                            true
-                        );
-                        addToHistory('Air raid alert ACTIVATED');
-                    } else {
-                        showNotification(
-                            '✅ ALL CLEAR - KYIV',
-                            'Air raid alert has been deactivated in Kyiv.',
-                            false
-                        );
-                        addToHistory('Air raid alert DEACTIVATED');
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                }
-                
-                lastAlertState = currentAlertActive;
-                elements.lastCheck.textContent = `Last checked: ${new Date().toLocaleTimeString()}`;
-                elements.connectionIndicator.className = 'status-indicator clear';
 
-            } catch (error) {
-                console.error('Error checking alert status:', error);
-                elements.lastCheck.textContent = `Error: ${error.message}`;
-                elements.connectionIndicator.className = 'status-indicator active';
+                    const data = await response.json();
+                    
+                    // Successfully connected - use this endpoint going forward
+                    currentEndpointIndex = endpointIndex;
+                    
+                    // Parse different API response formats
+                    let currentAlertActive = false;
+                    let kyivAlert = null;
+                    
+                    // Format 1: alerts.in.ua direct (object with alert property)
+                    if (data && typeof data === 'object' && 'alert' in data) {
+                        currentAlertActive = data.alert === true;
+                        kyivAlert = data;
+                    }
+                    // Format 2: siren.pp.ua (array format)
+                    else if (data && Array.isArray(data) && data.length > 0) {
+                        currentAlertActive = data[0].activeAlerts && data[0].activeAlerts.length > 0;
+                        kyivAlert = data[0];
+                    }
+                    // Format 3: wrapped response
+                    else if (data && data.alerts && data.alerts.states && data.alerts.states[KYIV_REGION_ID]) {
+                        const kyivData = data.alerts.states[KYIV_REGION_ID];
+                        currentAlertActive = kyivData.alert === true;
+                        kyivAlert = kyivData;
+                    }
+                    
+                    // Update UI with alert data
+                    updateStatus(currentAlertActive, kyivAlert ? {
+                        changed: kyivAlert.changed || (kyivAlert.activeAlerts && kyivAlert.activeAlerts.length > 0 
+                            ? kyivAlert.activeAlerts[0].lastUpdate 
+                            : null)
+                    } : null);
+                    
+                    // Check for state change and send notification
+                    if (lastAlertState !== null && lastAlertState !== currentAlertActive) {
+                        if (currentAlertActive) {
+                            showNotification(
+                                '🚨 AIR RAID ALERT - KYIV',
+                                'Air raid sirens activated in Kyiv. Seek shelter immediately!',
+                                true
+                            );
+                            addToHistory('Air raid alert ACTIVATED');
+                        } else {
+                            showNotification(
+                                '✅ ALL CLEAR - KYIV',
+                                'Air raid alert has been deactivated in Kyiv.',
+                                false
+                            );
+                            addToHistory('Air raid alert DEACTIVATED');
+                        }
+                    }
+                    
+                    lastAlertState = currentAlertActive;
+                    elements.lastCheck.textContent = `Last checked: ${new Date().toLocaleTimeString()} (API ${endpointIndex + 1})`;
+                    elements.connectionIndicator.className = 'status-indicator clear';
+                    
+                    // Successfully processed - exit retry loop
+                    return;
+                    
+                } catch (error) {
+                    console.error(`Error with endpoint ${endpointIndex + 1}:`, error);
+                    
+                    // If this was the last endpoint to try, show error
+                    if (i === API_ENDPOINTS.length - 1) {
+                        // Show more helpful error message
+                        if (error.message.includes('Failed to fetch') || error.message.includes('Load failed')) {
+                            elements.lastCheck.textContent = 'All APIs failed - retrying in 30s...';
+                            // Try updating status with cached state if available
+                            if (lastAlertState !== null) {
+                                updateStatus(lastAlertState, null);
+                            } else {
+                                elements.statusText.textContent = 'Connection Issue';
+                                elements.statusTime.textContent = 'Trying alternative sources...';
+                            }
+                        } else {
+                            elements.lastCheck.textContent = `Error: ${error.message}`;
+                        }
+                        elements.connectionIndicator.className = 'status-indicator active';
+                    }
+                    // Otherwise continue to next endpoint
+                }
             }
         }
 
