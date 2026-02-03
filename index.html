@@ -376,11 +376,11 @@
     </div>
 
     <script>
-        // Try multiple API endpoints - using different CORS proxies
+        // Try multiple API endpoints - ukrainealarm.com is public and doesn't require auth
         const API_ENDPOINTS = [
-            'https://api.codetabs.com/v1/proxy?quest=https://alerts.in.ua/api/states/31',
-            'https://thingproxy.freeboard.io/fetch/https://alerts.in.ua/api/states/31',
-            'https://api.allorigins.win/get?url=https://alerts.in.ua/api/states/31'
+            'https://api.ukrainealarm.com/api/v3/alerts/31',
+            'https://api.codetabs.com/v1/proxy?quest=https://api.ukrainealarm.com/api/v3/alerts/31',
+            'https://api.allorigins.win/get?url=https://api.ukrainealarm.com/api/v3/alerts/31'
         ];
         let currentEndpointIndex = 0;
         const KYIV_REGION_ID = '31';
@@ -512,21 +512,23 @@
                     let currentAlertActive = false;
                     let kyivAlert = null;
                     
-                    // Format 1: alerts.in.ua direct (object with alert property)
-                    if (data && typeof data === 'object' && 'alert' in data) {
+                    // Format 1: ukrainealarm.com v3 API (array of active alerts)
+                    if (data && Array.isArray(data) && data.length > 0) {
+                        // If array has items, there are active alerts
+                        currentAlertActive = true;
+                        kyivAlert = {
+                            changed: data[0].lastUpdate || data[0].startedAt || new Date().toISOString()
+                        };
+                    }
+                    // Format 2: Empty array means no alerts
+                    else if (data && Array.isArray(data) && data.length === 0) {
+                        currentAlertActive = false;
+                        kyivAlert = null;
+                    }
+                    // Format 3: alerts.in.ua fallback (object with alert property)
+                    else if (data && typeof data === 'object' && 'alert' in data) {
                         currentAlertActive = data.alert === true;
                         kyivAlert = data;
-                    }
-                    // Format 2: siren.pp.ua (array format)
-                    else if (data && Array.isArray(data) && data.length > 0) {
-                        currentAlertActive = data[0].activeAlerts && data[0].activeAlerts.length > 0;
-                        kyivAlert = data[0];
-                    }
-                    // Format 3: wrapped response
-                    else if (data && data.alerts && data.alerts.states && data.alerts.states[KYIV_REGION_ID]) {
-                        const kyivData = data.alerts.states[KYIV_REGION_ID];
-                        currentAlertActive = kyivData.alert === true;
-                        kyivAlert = kyivData;
                     }
                     
                     // Update UI with alert data
